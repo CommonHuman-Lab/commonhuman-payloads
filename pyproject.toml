@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "commonhuman-payloads"
+version = "0.1.0"
+description = "Shared payload collections, encoders, and WAF signatures for CommonHuman-Lab tools"
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = ">=3.10"
+authors = [
+  { name = "CommonHuman-Lab" },
+]
+keywords = ["xss", "sqli", "payloads", "waf", "security", "pentest"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+]
+dependencies = []  # stdlib only
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "mypy>=1.0",
+  "ruff>=0.4",
+]
+
+[project.urls]
+Homepage = "https://github.com/commonhuman-lab/commonhuman-payloads"
+Issues   = "https://github.com/commonhuman-lab/commonhuman-payloads/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/commonhuman_payloads"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts   = "-v"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true
