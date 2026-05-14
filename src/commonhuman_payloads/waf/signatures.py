@@ -169,7 +169,6 @@ SIGNATURES: List[WafSignature] = [
 ]
 
 # Generic block signals — no specific WAF identified.
-# stingxss has 8 patterns (superset of breachsql's 6); use the full set.
 GENERIC_BLOCK_BODIES: List[str] = [
     r"Access Denied",
     r"Forbidden",
