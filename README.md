@@ -62,7 +62,7 @@ PAYLOAD_VERSION # "2026.05" — payload database version (year.month)
 
 ### `xss`
 
-Context-aware XSS payload lists covering 28 injection contexts — HTML body, every attribute quoting style, all script sub-contexts, AngularJS/Vue templates, dangling markup, DOM clobbering, modern browser APIs, and more.
+Context-aware XSS payload lists covering 30 injection contexts — HTML body, every attribute quoting style, all script sub-contexts, AngularJS/Vue templates, dangling markup, DOM clobbering, modern browser APIs, and more.
 
 ```python
 from commonhuman_payloads.xss import get_basic_payloads, get_payloads_for_context
