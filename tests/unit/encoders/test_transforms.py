@@ -25,6 +25,14 @@ from commonhuman_payloads.encoders.transforms import (
     EVASION_SQL_CASE,
     EVASION_SQL_ENCODE,
     EVASION_SQL_MULTILINE,
+    EVASION_SQL_VERSIONED,
+    EVASION_SQL_SPACE_DASH,
+    EVASION_SQL_SPACE_HASH,
+    EVASION_SQL_SPACE_PLUS,
+    EVASION_SQL_BLANK_CHARS,
+    EVASION_SQL_RANDOM_COMMENTS,
+    EVASION_SQL_EQUALTOLIKE,
+    EVASION_SQL_BETWEEN,
     ALL_EVASIONS,
     # Main function
     apply_evasion,
@@ -49,6 +57,9 @@ class TestConstants:
             EVASION_BACKTICK, EVASION_CSS_EXPR,
             EVASION_SQL_COMMENT, EVASION_SQL_WHITESPACE, EVASION_SQL_CASE,
             EVASION_SQL_ENCODE, EVASION_SQL_MULTILINE,
+            EVASION_SQL_VERSIONED, EVASION_SQL_SPACE_DASH, EVASION_SQL_SPACE_HASH,
+            EVASION_SQL_SPACE_PLUS, EVASION_SQL_BLANK_CHARS,
+            EVASION_SQL_RANDOM_COMMENTS, EVASION_SQL_EQUALTOLIKE, EVASION_SQL_BETWEEN,
         ]
         for c in constants:
             assert isinstance(c, str)
@@ -347,3 +358,138 @@ class TestDoubleUrlEncodeHelper:
         payload = "abc"
         encoded = double_url_encode(payload)
         assert urllib.parse.unquote(urllib.parse.unquote(encoded)) == payload
+
+
+# ---------------------------------------------------------------------------
+# New strategies (added in evasion expansion to 24)
+# ---------------------------------------------------------------------------
+
+class TestSqlVersioned:
+    def test_select_wrapped_in_versioned_comment(self):
+        result = apply_evasion("SELECT 1", EVASION_SQL_VERSIONED)
+        assert "/*!50000SELECT*/" in result or "/*!50000select*/" in result.lower()
+
+    def test_no_keyword_no_change(self):
+        result = apply_evasion("1+1", EVASION_SQL_VERSIONED)
+        assert result == "1+1"
+
+    def test_original_keyword_absent(self):
+        result = apply_evasion("SELECT", EVASION_SQL_VERSIONED)
+        # The bare keyword SELECT should be gone; versioned comment present
+        assert "/*!50000" in result
+        assert result != "SELECT"
+
+
+class TestSqlSpaceDash:
+    def test_spaces_replaced(self):
+        result = apply_evasion("SELECT 1", EVASION_SQL_SPACE_DASH)
+        assert " " not in result
+
+    def test_contains_dash_comment(self):
+        result = apply_evasion("a b", EVASION_SQL_SPACE_DASH)
+        assert "--" in result and "\n" in result
+
+    def test_no_spaces_unchanged(self):
+        result = apply_evasion("SELECT", EVASION_SQL_SPACE_DASH)
+        assert result == "SELECT"
+
+
+class TestSqlSpaceHash:
+    def test_spaces_replaced(self):
+        result = apply_evasion("SELECT 1", EVASION_SQL_SPACE_HASH)
+        assert " " not in result
+
+    def test_contains_hash_comment(self):
+        result = apply_evasion("a b", EVASION_SQL_SPACE_HASH)
+        assert "#" in result and "\n" in result
+
+    def test_no_spaces_unchanged(self):
+        result = apply_evasion("SELECT", EVASION_SQL_SPACE_HASH)
+        assert result == "SELECT"
+
+
+class TestSqlSpacePlus:
+    def test_spaces_replaced_with_plus(self):
+        result = apply_evasion("SELECT 1 FROM t", EVASION_SQL_SPACE_PLUS)
+        assert " " not in result
+        assert "+" in result
+
+    def test_plus_count_matches_space_count(self):
+        payload = "a b c d"
+        result = apply_evasion(payload, EVASION_SQL_SPACE_PLUS)
+        assert result.count("+") == payload.count(" ")
+
+    def test_no_spaces_unchanged(self):
+        assert apply_evasion("SELECT", EVASION_SQL_SPACE_PLUS) == "SELECT"
+
+
+class TestSqlBlankChars:
+    _BLANK_CHARS = {"\t", "%0b", "%0c", "%0d"}
+
+    def test_spaces_replaced(self):
+        result = apply_evasion("a b", EVASION_SQL_BLANK_CHARS)
+        assert " " not in result
+
+    def test_replacement_is_valid_blank(self):
+        result = apply_evasion("a b", EVASION_SQL_BLANK_CHARS)
+        # The character between 'a' and 'b' must be one of the valid blanks
+        middle = result[1:-1]
+        assert middle in self._BLANK_CHARS
+
+    def test_no_spaces_unchanged(self):
+        assert apply_evasion("SELECT", EVASION_SQL_BLANK_CHARS) == "SELECT"
+
+
+class TestSqlRandomComments:
+    def test_select_chars_separated_by_comments(self):
+        result = apply_evasion("SELECT", EVASION_SQL_RANDOM_COMMENTS)
+        assert "/**/" in result
+
+    def test_non_keyword_unchanged(self):
+        result = apply_evasion("1=1", EVASION_SQL_RANDOM_COMMENTS)
+        assert result == "1=1"
+
+    def test_all_letters_still_present(self):
+        result = apply_evasion("SELECT", EVASION_SQL_RANDOM_COMMENTS)
+        for ch in "SELECT":
+            assert ch.upper() in result.upper()
+
+
+class TestSqlEqualToLike:
+    def test_equals_replaced_with_like(self):
+        result = apply_evasion("id=1", EVASION_SQL_EQUALTOLIKE)
+        assert "=" not in result
+        assert "LIKE" in result
+
+    def test_not_equals_preserved(self):
+        result = apply_evasion("id!=1", EVASION_SQL_EQUALTOLIKE)
+        assert "!=" in result
+
+    def test_less_than_equals_preserved(self):
+        result = apply_evasion("id<=1", EVASION_SQL_EQUALTOLIKE)
+        assert "<=" in result
+
+    def test_no_equals_unchanged(self):
+        result = apply_evasion("SELECT 1", EVASION_SQL_EQUALTOLIKE)
+        assert result == "SELECT 1"
+
+
+class TestSqlBetween:
+    def test_greater_than_replaced_with_between(self):
+        result = apply_evasion("id>5", EVASION_SQL_BETWEEN)
+        assert ">" not in result
+        assert "NOT BETWEEN" in result
+        assert "AND" in result
+
+    def test_numeric_preserved_in_output(self):
+        result = apply_evasion("val>42", EVASION_SQL_BETWEEN)
+        assert "42" in result
+
+    def test_no_greater_than_unchanged(self):
+        result = apply_evasion("id=1", EVASION_SQL_BETWEEN)
+        assert result == "id=1"
+
+    def test_spaced_form(self):
+        result = apply_evasion("id > 10", EVASION_SQL_BETWEEN)
+        assert "NOT BETWEEN" in result
+        assert "10" in result

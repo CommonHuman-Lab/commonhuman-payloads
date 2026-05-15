@@ -13,9 +13,10 @@ from .union import (
 from .oob import OOB_PAYLOADS, get_oob_payloads
 from .advanced import (
     DB_CONTENTS_PAYLOADS, STACKED_PAYLOADS, DIOS_PAYLOADS,
-    LFI_PAYLOADS, PRIVESC_PAYLOADS, ENUM_PAYLOADS,
+    LFI_PAYLOADS, PRIVESC_PAYLOADS, ENUM_PAYLOADS, EXTRACTION_TARGETS,
     get_db_contents_payloads, get_stacked_payloads,
     get_dios_payloads, get_lfi_payloads, get_privesc_payloads, get_enum_payloads,
+    get_extraction_targets,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "LFI_PAYLOADS", "PRIVESC_PAYLOADS", "ENUM_PAYLOADS",
     "get_db_contents_payloads", "get_stacked_payloads",
     "get_dios_payloads", "get_lfi_payloads", "get_privesc_payloads", "get_enum_payloads",
+    "EXTRACTION_TARGETS", "get_extraction_targets",
 ]

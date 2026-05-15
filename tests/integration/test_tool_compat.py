@@ -201,4 +201,4 @@ class TestPublicApiStability:
     def test_encoders_module_importable(self):
         from commonhuman_payloads.encoders import apply_evasion, ALL_EVASIONS
         assert callable(apply_evasion)
-        assert len(ALL_EVASIONS) == 16
+        assert len(ALL_EVASIONS) == 24

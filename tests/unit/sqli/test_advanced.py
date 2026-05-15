@@ -11,12 +11,14 @@ from commonhuman_payloads.sqli.advanced import (
     LFI_PAYLOADS,
     PRIVESC_PAYLOADS,
     ENUM_PAYLOADS,
+    EXTRACTION_TARGETS,
     get_db_contents_payloads,
     get_stacked_payloads,
     get_dios_payloads,
     get_lfi_payloads,
     get_privesc_payloads,
     get_enum_payloads,
+    get_extraction_targets,
 )
 
 _CONTENT_DBMS = ["mysql", "mariadb", "mssql", "postgres", "sqlite"]
@@ -124,3 +126,73 @@ class TestEnumPayloads:
         result = get_enum_payloads("__no_such_category__")
         assert isinstance(result, list)
         assert len(result) == 0
+
+
+_EXTRACTION_DBMS = ["mysql", "mariadb", "mssql", "postgres", "sqlite", "oracle"]
+
+
+class TestExtractionTargets:
+    """get_extraction_targets() returns (label, sql_expr) tuples for blind extraction."""
+
+    @pytest.mark.parametrize("dbms", _EXTRACTION_DBMS)
+    def test_known_dbms_returns_targets(self, dbms):
+        result = get_extraction_targets(dbms)
+        assert isinstance(result, list)
+        assert len(result) > 0, f"no targets for {dbms!r}"
+
+    @pytest.mark.parametrize("dbms", _EXTRACTION_DBMS)
+    def test_each_item_is_label_expr_tuple(self, dbms):
+        for item in get_extraction_targets(dbms):
+            assert isinstance(item, tuple) and len(item) == 2, (
+                f"expected (label, expr) tuple, got {item!r}"
+            )
+            label, expr = item
+            assert isinstance(label, str) and label
+            assert isinstance(expr, str) and expr
+
+    @pytest.mark.parametrize("dbms", _EXTRACTION_DBMS)
+    def test_exprs_are_standalone_sql_not_injection_payloads(self, dbms):
+        """Expressions must be bare SQL (no leading quote or injection prefix)."""
+        for _, expr in get_extraction_targets(dbms):
+            assert not expr.startswith("'"), (
+                f"{dbms}: expr must not start with quote: {expr!r}"
+            )
+            assert "--" not in expr, (
+                f"{dbms}: expr must not contain comment terminator: {expr!r}"
+            )
+
+    def test_unknown_dbms_falls_back_to_generic(self):
+        result = get_extraction_targets("__unknown__")
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_none_dbms_falls_back_to_generic(self):
+        result = get_extraction_targets(None)
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_empty_string_dbms_falls_back_to_generic(self):
+        result = get_extraction_targets("")
+        assert isinstance(result, list)
+        assert len(result) > 0
+
+    def test_generic_fallback_has_version(self):
+        result = get_extraction_targets("__unknown__")
+        labels = [label for label, _ in result]
+        assert "version" in labels
+
+    def test_mysql_covers_expected_targets(self):
+        labels = [label for label, _ in get_extraction_targets("mysql")]
+        assert "version" in labels
+        assert "current_user" in labels
+        assert "current_database" in labels
+        assert "tables" in labels
+
+    def test_dict_covers_all_declared_dbms(self):
+        for dbms in _EXTRACTION_DBMS:
+            assert dbms in EXTRACTION_TARGETS, f"{dbms!r} missing from EXTRACTION_TARGETS"
+
+    def test_case_insensitive_lookup(self):
+        upper = get_extraction_targets("MYSQL")
+        lower = get_extraction_targets("mysql")
+        assert upper == lower
