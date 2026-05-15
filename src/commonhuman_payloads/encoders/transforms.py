@@ -30,11 +30,19 @@ EVASION_BACKTICK      = "backtick_attr"
 EVASION_CSS_EXPR      = "css_expression"
 
 # SQLi-specific
-EVASION_SQL_COMMENT    = "sql_comment"     # SELECT/**/1  or  SE/**/LECT
-EVASION_SQL_WHITESPACE = "sql_whitespace"  # replace spaces with tabs
-EVASION_SQL_CASE       = "sql_case"        # SeLeCt, uNiOn
-EVASION_SQL_ENCODE     = "sql_encode"      # URL-encode the payload
-EVASION_SQL_MULTILINE  = "sql_multiline"   # replace spaces with /*\n*/ outside strings
+EVASION_SQL_COMMENT         = "sql_comment"          # SELECT/**/1  or  SE/**/LECT
+EVASION_SQL_WHITESPACE      = "sql_whitespace"        # replace spaces with tabs
+EVASION_SQL_CASE            = "sql_case"              # SeLeCt, uNiOn
+EVASION_SQL_ENCODE          = "sql_encode"            # URL-encode the payload
+EVASION_SQL_MULTILINE       = "sql_multiline"         # replace spaces with /*\n*/ outside strings
+EVASION_SQL_VERSIONED       = "sql_versioned"         # /*!50000SELECT*/ versioned MySQL comments
+EVASION_SQL_SPACE_DASH      = "sql_space_dash"        # spaces → --rand\n
+EVASION_SQL_SPACE_HASH      = "sql_space_hash"        # spaces → #rand\n
+EVASION_SQL_SPACE_PLUS      = "sql_space_plus"        # spaces → +
+EVASION_SQL_BLANK_CHARS     = "sql_blank_chars"       # spaces → MySQL blank chars (%09/%0b/%0c/%0d)
+EVASION_SQL_RANDOM_COMMENTS = "sql_random_comments"   # S/**/E/**/L/**/E/**/C/**/T
+EVASION_SQL_EQUALTOLIKE     = "sql_equaltolike"       # = → LIKE
+EVASION_SQL_BETWEEN         = "sql_between"           # > N → NOT BETWEEN 0 AND N
 
 ALL_EVASIONS = [
     EVASION_NONE,
@@ -53,6 +61,14 @@ ALL_EVASIONS = [
     EVASION_SQL_CASE,
     EVASION_SQL_ENCODE,
     EVASION_SQL_MULTILINE,
+    EVASION_SQL_VERSIONED,
+    EVASION_SQL_SPACE_DASH,
+    EVASION_SQL_SPACE_HASH,
+    EVASION_SQL_SPACE_PLUS,
+    EVASION_SQL_BLANK_CHARS,
+    EVASION_SQL_RANDOM_COMMENTS,
+    EVASION_SQL_EQUALTOLIKE,
+    EVASION_SQL_BETWEEN,
 ]
 
 _SQL_KEYWORDS = (
@@ -114,6 +130,30 @@ def apply_evasion(payload: str, evasion: str) -> str:
 
     if evasion == EVASION_SQL_MULTILINE:
         return _sql_multiline(payload)
+
+    if evasion == EVASION_SQL_VERSIONED:
+        return _sql_versioned(payload)
+
+    if evasion == EVASION_SQL_SPACE_DASH:
+        return _sql_space_dash(payload)
+
+    if evasion == EVASION_SQL_SPACE_HASH:
+        return _sql_space_hash(payload)
+
+    if evasion == EVASION_SQL_SPACE_PLUS:
+        return payload.replace(" ", "+")
+
+    if evasion == EVASION_SQL_BLANK_CHARS:
+        return _sql_blank_chars(payload)
+
+    if evasion == EVASION_SQL_RANDOM_COMMENTS:
+        return _sql_random_comments(payload)
+
+    if evasion == EVASION_SQL_EQUALTOLIKE:
+        return _sql_equaltolike(payload)
+
+    if evasion == EVASION_SQL_BETWEEN:
+        return _sql_between(payload)
 
     return payload
 
@@ -235,6 +275,52 @@ def _sql_multiline(s: str) -> str:
         else:
             result_parts.append(ch)
     return "".join(result_parts)
+
+
+def _sql_versioned(s: str) -> str:
+    """Wrap SQL keywords in versioned MySQL comments: SELECT → /*!50000SELECT*/"""
+    result = s
+    for kw in _SQL_KEYWORDS:
+        result = re.sub(rf'\b{kw}\b', f'/*!50000{kw}*/', result, flags=re.IGNORECASE)
+    return result
+
+
+def _sql_space_dash(s: str) -> str:
+    """Replace spaces with --<random>\\n (space2dash)."""
+    import string
+    rand = "".join(random.choices(string.ascii_lowercase, k=6))
+    return s.replace(" ", f"--{rand}\n")
+
+
+def _sql_space_hash(s: str) -> str:
+    """Replace spaces with #<random>\\n (space2hash)."""
+    import string
+    rand = "".join(random.choices(string.ascii_lowercase, k=6))
+    return s.replace(" ", f"#{rand}\n")
+
+
+def _sql_blank_chars(s: str) -> str:
+    """Replace spaces with a random MySQL-accepted blank character."""
+    return s.replace(" ", random.choice(["\t", "%0b", "%0c", "%0d"]))
+
+
+def _sql_random_comments(s: str) -> str:
+    """Insert /**/ between every character of SQL keywords."""
+    result = s
+    for kw in _SQL_KEYWORDS:
+        obfuscated = "/**/".join(kw)
+        result = re.sub(rf'\b{kw}\b', obfuscated, result, flags=re.IGNORECASE)
+    return result
+
+
+def _sql_equaltolike(s: str) -> str:
+    """Replace standalone = with LIKE (bypasses = operator filters)."""
+    return re.sub(r'(?<![!<>])=(?!=)', " LIKE ", s)
+
+
+def _sql_between(s: str) -> str:
+    """Replace > N with NOT BETWEEN 0 AND N (bypasses > operator filters)."""
+    return re.sub(r'>(\s*\d+)', r' NOT BETWEEN 0 AND\1', s)
 
 
 # ---------------------------------------------------------------------------

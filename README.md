@@ -43,7 +43,7 @@ from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
 | ------ | ------- |
 | `commonhuman_payloads.xss` | HTML, script, attribute, and advanced XSS payloads — 28 contexts |
 | `commonhuman_payloads.sqli` | Error-based, boolean, time-based, UNION, OOB, and advanced SQLi payloads |
-| `commonhuman_payloads.encoders` | WAF evasion transform functions — 16 strategies, one `apply_evasion()` call |
+| `commonhuman_payloads.encoders` | WAF evasion transform functions — 24 strategies, one `apply_evasion()` call |
 | `commonhuman_payloads.waf` | WAF signature data — 10 fingerprints with merged evasion recommendations |
 | `commonhuman_payloads.markers` | Scan marker generation and reflection helpers |
 
@@ -166,7 +166,7 @@ Risk levels control destructive payload inclusion:
 
 ### `encoders`
 
-Sixteen WAF evasion strategies in one function. Import the constant, pass it to `apply_evasion()`.
+Twenty-four WAF evasion strategies in one function. Import the constant, pass it to `apply_evasion()`.
 
 ```python
 from commonhuman_payloads.encoders import apply_evasion, EVASION_DOUBLE_ENCODE, EVASION_SQL_COMMENT
@@ -180,7 +180,7 @@ obfuscated = apply_evasion(sql_payload, EVASION_SQL_COMMENT)
 # → "' /**/UNION/**/ /**/SELECT/**/ 1,2-- -"
 ```
 
-#### All 16 strategies
+#### All 24 strategies
 
 | Constant | Strategy | Domain |
 | -------- | -------- | ------ |
@@ -200,6 +200,14 @@ obfuscated = apply_evasion(sql_payload, EVASION_SQL_COMMENT)
 | `EVASION_SQL_CASE` | Randomise keyword casing | SQLi |
 | `EVASION_SQL_ENCODE` | URL-encode the full payload | SQLi |
 | `EVASION_SQL_MULTILINE` | Replace spaces outside strings with `/*\n*/` | SQLi |
+| `EVASION_SQL_VERSIONED` | Wrap keywords in versioned MySQL comments — `/*!50000SELECT*/` | SQLi |
+| `EVASION_SQL_SPACE_DASH` | Replace spaces with `--rand\n` | SQLi |
+| `EVASION_SQL_SPACE_HASH` | Replace spaces with `#rand\n` | SQLi |
+| `EVASION_SQL_SPACE_PLUS` | Replace spaces with `+` | SQLi |
+| `EVASION_SQL_BLANK_CHARS` | Replace spaces with a random MySQL blank char (`%09/%0b/%0c/%0d`) | SQLi |
+| `EVASION_SQL_RANDOM_COMMENTS` | Insert `/**/` between every character of SQL keywords | SQLi |
+| `EVASION_SQL_EQUALTOLIKE` | Replace standalone `=` with `LIKE` | SQLi |
+| `EVASION_SQL_BETWEEN` | Replace `> N` with `NOT BETWEEN 0 AND N` | SQLi |
 
 The "Domain" column is guidance — tools apply only the strategies they implement.
 

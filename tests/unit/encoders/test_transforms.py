@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (c) 2026 CommonHuman-Lab
-"""Tests for all 16 WAF evasion strategies in encoders.transforms."""
+"""Tests for all 24 WAF evasion strategies in encoders.transforms."""
 
 import re
 import urllib.parse
@@ -53,8 +53,8 @@ class TestConstants:
         for c in constants:
             assert isinstance(c, str)
 
-    def test_all_evasions_has_16_entries(self):
-        assert len(ALL_EVASIONS) == 16
+    def test_all_evasions_has_24_entries(self):
+        assert len(ALL_EVASIONS) == 24
 
     def test_all_evasions_are_unique(self):
         assert len(ALL_EVASIONS) == len(set(ALL_EVASIONS))

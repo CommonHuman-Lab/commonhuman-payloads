@@ -29,6 +29,11 @@ from ..encoders.transforms import (
     EVASION_COMMENT_BREAK,
     EVASION_SQL_COMMENT,
     EVASION_SQL_CASE,
+    EVASION_SQL_VERSIONED,
+    EVASION_SQL_SPACE_DASH,
+    EVASION_SQL_BLANK_CHARS,
+    EVASION_SQL_RANDOM_COMMENTS,
+    EVASION_SQL_EQUALTOLIKE,
 )
 
 
@@ -106,8 +111,9 @@ def detect(
                 detected=True,
                 name="Generic WAF (inline body block — double-encode bypass likely)",
                 evasions=[
-                    EVASION_DOUBLE_ENCODE, EVASION_SQL_COMMENT, EVASION_SQL_CASE,
-                    EVASION_CASE_MIXING, EVASION_HTML_ENCODE,
+                    EVASION_DOUBLE_ENCODE, EVASION_SQL_VERSIONED, EVASION_SQL_COMMENT,
+                    EVASION_SQL_CASE, EVASION_CASE_MIXING, EVASION_HTML_ENCODE,
+                    EVASION_SQL_RANDOM_COMMENTS, EVASION_SQL_BLANK_CHARS,
                 ],
                 confidence="medium",
             )
@@ -127,8 +133,8 @@ def detect(
                     detected=True,
                     name="Generic WAF (double-encode bypass)",
                     evasions=[
-                        EVASION_DOUBLE_ENCODE, EVASION_SQL_COMMENT, EVASION_SQL_CASE,
-                        EVASION_CASE_MIXING, EVASION_HTML_ENCODE,
+                        EVASION_DOUBLE_ENCODE, EVASION_SQL_VERSIONED, EVASION_SQL_COMMENT,
+                        EVASION_SQL_CASE, EVASION_CASE_MIXING, EVASION_HTML_ENCODE,
                     ],
                     confidence="medium",
                 )
@@ -138,7 +144,9 @@ def detect(
             detected=True,
             name="Generic WAF",
             evasions=[
-                EVASION_SQL_COMMENT, EVASION_SQL_CASE,
+                EVASION_SQL_VERSIONED, EVASION_SQL_COMMENT, EVASION_SQL_CASE,
+                EVASION_SQL_RANDOM_COMMENTS, EVASION_SQL_SPACE_DASH,
+                EVASION_SQL_BLANK_CHARS, EVASION_SQL_EQUALTOLIKE,
                 EVASION_CASE_MIXING, EVASION_HTML_ENCODE,
                 EVASION_UNICODE, EVASION_COMMENT_BREAK,
             ],
