@@ -11,7 +11,7 @@ Quick start:
     from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 PAYLOAD_VERSION = "2026.05"
 
 __all__ = ["__version__", "PAYLOAD_VERSION"]
