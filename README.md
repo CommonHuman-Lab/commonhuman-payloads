@@ -43,7 +43,7 @@ from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
 | ------ | ------- |
 | `commonhuman_payloads.xss` | HTML, script, attribute, and advanced XSS payloads — 28 contexts |
 | `commonhuman_payloads.sqli` | Error-based, boolean, time-based, UNION, OOB, and advanced SQLi payloads |
-| `commonhuman_payloads.encoders` | WAF evasion transform functions — 26 strategies, one `apply_evasion()` call |
+| `commonhuman_payloads.encoders` | WAF evasion transform functions — 26 strategies, `apply_evasion()` for single transforms, `apply_evasion_chain()` for sequential chains |
 | `commonhuman_payloads.waf` | WAF signature data — 10 fingerprints with merged evasion recommendations |
 | `commonhuman_payloads.markers` | Scan marker generation and reflection helpers |
 
@@ -169,18 +169,32 @@ Risk levels control destructive payload inclusion:
 
 ### `encoders`
 
-Twenty-six WAF evasion strategies in one function. Import the constant, pass it to `apply_evasion()`.
+Twenty-six WAF evasion strategies. Apply a single transform with `apply_evasion()`, or chain multiple transforms in sequence with `apply_evasion_chain()`.
 
 ```python
-from commonhuman_payloads.encoders import apply_evasion, EVASION_DOUBLE_ENCODE, EVASION_SQL_COMMENT
+from commonhuman_payloads.encoders import (
+    apply_evasion, apply_evasion_chain, EVASION_NAMES,
+    EVASION_DOUBLE_ENCODE, EVASION_SQL_COMMENT,
+)
 
 payload = "<img src=x onerror=alert('xss')>"
+
+# Single transform
 encoded = apply_evasion(payload, EVASION_DOUBLE_ENCODE)
 # → "%253cimg+src%253dx+onerror%253dalert%2528%2527xss%2527%2529%253e"
 
 sql_payload = "' UNION SELECT 1,2-- -"
 obfuscated = apply_evasion(sql_payload, EVASION_SQL_COMMENT)
 # → "' /**/UNION/**/ /**/SELECT/**/ 1,2-- -"
+
+# Sequential chain — transforms are applied left to right
+chained = apply_evasion_chain(payload, ["unicode", "case"])
+# → unicode-escape first, then case-mix the result
+
+# EVASION_NAMES maps human-readable CLI names to constants
+# Useful for tools that accept --evasion case,unicode on the command line
+print(EVASION_NAMES)
+# {"case": "case_mixing", "html": "html_encode", "unicode": "unicode_escape", ...}
 ```
 
 #### All 26 strategies
@@ -215,6 +229,8 @@ obfuscated = apply_evasion(sql_payload, EVASION_SQL_COMMENT)
 | `EVASION_SQL_BETWEEN` | Replace `> N` with `NOT BETWEEN 0 AND N` | SQLi |
 
 The "Domain" column is guidance — tools apply only the strategies they implement.
+
+`XSS_EVASIONS` exports just the 13 XSS-relevant strategies as a list, for tools that want to iterate or auto-select without filtering out the SQLi-specific ones.
 
 ---
 
