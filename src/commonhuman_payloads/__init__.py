@@ -8,10 +8,11 @@ Quick start:
     from commonhuman_payloads.xss import get_basic_payloads, get_payloads_for_context
     from commonhuman_payloads.sqli import get_error_payloads, get_boolean_pairs
     from commonhuman_payloads.encoders import apply_evasion, EVASION_DOUBLE_ENCODE
-    from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
+    from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES, get_waf_payloads
+    from commonhuman_payloads.js_vulns import KNOWN_VULNERABLE_LIBS, LibSpec
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 PAYLOAD_VERSION = "2026.05"
 
 __all__ = ["__version__", "PAYLOAD_VERSION"]

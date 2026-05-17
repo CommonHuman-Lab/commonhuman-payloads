@@ -44,7 +44,8 @@ from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
 | `commonhuman_payloads.xss` | HTML, script, attribute, and advanced XSS payloads — 28 contexts |
 | `commonhuman_payloads.sqli` | Error-based, boolean, time-based, UNION, OOB, and advanced SQLi payloads |
 | `commonhuman_payloads.encoders` | WAF evasion transform functions — 26 strategies, `apply_evasion()` for single transforms, `apply_evasion_chain()` for sequential chains |
-| `commonhuman_payloads.waf` | WAF signature data — 10 fingerprints with merged evasion recommendations |
+| `commonhuman_payloads.waf` | WAF signature detection, WAF-specific bypass payload lists, and `get_waf_payloads()` |
+| `commonhuman_payloads.js_vulns` | Vulnerable JS library database — 10+ `LibSpec` entries covering jQuery, AngularJS, Lodash, Bootstrap, DOMPurify, and more |
 | `commonhuman_payloads.markers` | Scan marker generation and reflection helpers |
 
 Two-track versioning:
@@ -254,6 +255,19 @@ if result.detected:
     print(result.name, result.confidence, result.evasions)
 ```
 
+Once a WAF is identified, retrieve its curated bypass payload list:
+
+```python
+from commonhuman_payloads.waf.payloads import get_waf_payloads
+
+payloads = get_waf_payloads("Cloudflare")
+for p in payloads:
+    rendered = p.replace("{marker}", my_marker)
+    # inject rendered ...
+```
+
+`get_waf_payloads()` returns `[]` for unknown WAF names — safe to call without a check.
+
 `check_reflection=False` for SQLi probes — SQL payloads aren't reflected the same way.
 
 Scoring algorithm (header +2, body match +1, status code +1):
@@ -266,6 +280,35 @@ Each `WafSignature.evasions` list contains the recommended strategies to try in 
 #### Covered WAFs
 
 Cloudflare · Akamai · Imperva · AWS WAF · ModSecurity · Sucuri · F5 BIG-IP ASM · Barracuda · Wordfence · Fortinet FortiWeb
+
+---
+
+### `js_vulns`
+
+Database of JavaScript libraries with known XSS / prototype-pollution CVEs. Each `LibSpec` entry carries URL patterns, a version regex, an inline fingerprint string, and a `vuln_if` callable that checks whether a detected version falls in the vulnerable range.
+
+```python
+from commonhuman_payloads.js_vulns import KNOWN_VULNERABLE_LIBS, LibSpec, _ver
+
+for spec in KNOWN_VULNERABLE_LIBS:
+    print(spec.library_id, spec.cve)
+    print(spec.advisory)
+
+    # Check a detected version
+    detected = _ver("3.4.1")           # → (3, 4, 1)
+    if spec.vuln_if(detected):
+        print(f"Vulnerable: {spec.display_name}")
+
+# URL pattern matching (check a <script src> URL)
+import re
+url = "https://cdn.example.com/jquery-3.4.1.min.js"
+for spec in KNOWN_VULNERABLE_LIBS:
+    if any(re.search(p, url) for p in spec.url_patterns):
+        # Extract version from URL or inline source using spec.ver_regex
+        ...
+```
+
+Covered libraries: jQuery (2 CVE groups), AngularJS, Bootstrap (v3 and v4), Lodash, Moment.js, Vue.js, Handlebars, DOMPurify, Underscore.js.
 
 ---
 

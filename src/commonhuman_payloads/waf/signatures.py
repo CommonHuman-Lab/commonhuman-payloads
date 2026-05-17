@@ -15,6 +15,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
+from .payloads import (
+    _CLOUDFLARE, _AKAMAI, _IMPERVA, _AWS_WAF, _MODSECURITY,
+    _SUCURI, _F5_BIGIP, _BARRACUDA, _WORDFENCE, _FORTIWEB,
+)
 from ..encoders.transforms import (
     EVASION_CASE_MIXING, EVASION_CHUNKED_TAGS, EVASION_COMMENT_BREAK,
     EVASION_DOUBLE_ENCODE, EVASION_HTML_ENCODE, EVASION_NEWLINE,
@@ -26,14 +30,13 @@ from ..encoders.transforms import (
 
 @dataclass
 class WafSignature:
-    name:         str
-    header_clues: List[Tuple[str, str]] = field(default_factory=list)  # (header, regex)
-    body_clues:   List[str]             = field(default_factory=list)  # body regexes
-    status_codes: List[int]             = field(default_factory=list)
-    evasions:     List[str]             = field(default_factory=list)  # recommended order
+    name:           str
+    header_clues:   List[Tuple[str, str]] = field(default_factory=list)  # (header, regex)
+    body_clues:     List[str]             = field(default_factory=list)  # body regexes
+    status_codes:   List[int]             = field(default_factory=list)
+    evasions:       List[str]             = field(default_factory=list)  # recommended order
+    extra_payloads: List[str]             = field(default_factory=list)  # WAF-specific XSS payloads
 
-
-# Merged signatures — evasion lists union of both tools (XSS + SQLi strategies).
 # Scoring: header match +2, body match +1, status code match +1.
 # Threshold: score >= 2 for a match; >= 4 for high confidence.
 SIGNATURES: List[WafSignature] = [
@@ -50,6 +53,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_COMMENT, EVASION_SQL_CASE,
             EVASION_UNICODE, EVASION_CASE_MIXING, EVASION_COMMENT_BREAK, EVASION_NEWLINE,
         ],
+        extra_payloads=_CLOUDFLARE,
     ),
     WafSignature(
         name="Akamai",
@@ -63,6 +67,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_WHITESPACE, EVASION_SQL_COMMENT,
             EVASION_HTML_ENCODE, EVASION_DOUBLE_ENCODE, EVASION_CHUNKED_TAGS,
         ],
+        extra_payloads=_AKAMAI,
     ),
     WafSignature(
         name="Imperva",
@@ -76,6 +81,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_ENCODE,
             EVASION_UNICODE, EVASION_NULL_BYTE, EVASION_CASE_MIXING,
         ],
+        extra_payloads=_IMPERVA,
     ),
     WafSignature(
         name="AWS WAF",
@@ -89,6 +95,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_COMMENT, EVASION_SQL_CASE,
             EVASION_HTML_ENCODE, EVASION_CASE_MIXING, EVASION_UNICODE,
         ],
+        extra_payloads=_AWS_WAF,
     ),
     WafSignature(
         name="ModSecurity",
@@ -104,6 +111,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_MULTILINE, EVASION_SQL_CASE,
             EVASION_CASE_MIXING, EVASION_COMMENT_BREAK, EVASION_CHUNKED_TAGS, EVASION_NULL_BYTE,
         ],
+        extra_payloads=_MODSECURITY,
     ),
     WafSignature(
         name="Sucuri",
@@ -118,6 +126,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_ENCODE,
             EVASION_UNICODE, EVASION_DOUBLE_ENCODE,
         ],
+        extra_payloads=_SUCURI,
     ),
     WafSignature(
         name="F5 BIG-IP ASM",
@@ -131,6 +140,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_WHITESPACE, EVASION_SQL_COMMENT,
             EVASION_CHUNKED_TAGS, EVASION_NEWLINE, EVASION_CASE_MIXING,
         ],
+        extra_payloads=_F5_BIGIP,
     ),
     WafSignature(
         name="Barracuda",
@@ -141,6 +151,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_ENCODE,
             EVASION_HTML_ENCODE, EVASION_DOUBLE_ENCODE,
         ],
+        extra_payloads=_BARRACUDA,
     ),
     WafSignature(
         name="Wordfence",
@@ -155,6 +166,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_COMMENT,
             EVASION_UNICODE, EVASION_CASE_MIXING,
         ],
+        extra_payloads=_WORDFENCE,
     ),
     WafSignature(
         name="Fortinet FortiWeb",
@@ -165,6 +177,7 @@ SIGNATURES: List[WafSignature] = [
             EVASION_SQL_CASE, EVASION_SQL_COMMENT,
             EVASION_HTML_ENCODE, EVASION_CHUNKED_TAGS,
         ],
+        extra_payloads=_FORTIWEB,
     ),
 ]
 
