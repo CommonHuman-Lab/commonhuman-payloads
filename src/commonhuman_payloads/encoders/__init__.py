@@ -4,6 +4,8 @@
 
 from .transforms import (
     # Constants
+    EVASION_NAMES,
+    XSS_EVASIONS,
     EVASION_NONE,
     EVASION_CASE_MIXING,
     EVASION_HTML_ENCODE,
@@ -33,6 +35,7 @@ from .transforms import (
     ALL_EVASIONS,
     # Functions
     apply_evasion,
+    apply_evasion_chain,
     double_url_encode,
     case_mix,
     html_encode,
@@ -40,6 +43,8 @@ from .transforms import (
 )
 
 __all__ = [
+    "EVASION_NAMES",
+    "XSS_EVASIONS",
     "EVASION_NONE",
     "EVASION_CASE_MIXING",
     "EVASION_HTML_ENCODE",
@@ -68,6 +73,7 @@ __all__ = [
     "EVASION_SQL_BETWEEN",
     "ALL_EVASIONS",
     "apply_evasion",
+    "apply_evasion_chain",
     "double_url_encode",
     "case_mix",
     "html_encode",

@@ -48,6 +48,40 @@ EVASION_SQL_RANDOM_COMMENTS = "sql_random_comments"   # S/**/E/**/L/**/E/**/C/**
 EVASION_SQL_EQUALTOLIKE     = "sql_equaltolike"       # = → LIKE
 EVASION_SQL_BETWEEN         = "sql_between"           # > N → NOT BETWEEN 0 AND N
 
+XSS_EVASIONS = [
+    EVASION_NONE,
+    EVASION_CASE_MIXING,
+    EVASION_HTML_ENCODE,
+    EVASION_UNICODE,
+    EVASION_DOUBLE_ENCODE,
+    EVASION_CHUNKED_TAGS,
+    EVASION_NULL_BYTE,
+    EVASION_NEWLINE,
+    EVASION_COMMENT_BREAK,
+    EVASION_BACKTICK,
+    EVASION_CSS_EXPR,
+    EVASION_FROMCHARCODE,
+    EVASION_UNESCAPE,
+]
+
+# Human-readable aliases for --evasion CLI flag (e.g. --evasion case,unicode).
+# Shared by any tool that uses commonhuman_payloads evasion transforms.
+EVASION_NAMES: dict[str, str] = {
+    "case":         EVASION_CASE_MIXING,
+    "html":         EVASION_HTML_ENCODE,
+    "unicode":      EVASION_UNICODE,
+    "double":       EVASION_DOUBLE_ENCODE,
+    "chunked":      EVASION_CHUNKED_TAGS,
+    "null":         EVASION_NULL_BYTE,
+    "newline":      EVASION_NEWLINE,
+    "comment":      EVASION_COMMENT_BREAK,
+    "backtick":     EVASION_BACKTICK,
+    "css":          EVASION_CSS_EXPR,
+    "fromcharcode": EVASION_FROMCHARCODE,
+    "unescape":     EVASION_UNESCAPE,
+    "none":         EVASION_NONE,
+}
+
 ALL_EVASIONS = [
     EVASION_NONE,
     EVASION_CASE_MIXING,
@@ -375,6 +409,32 @@ def _sql_equaltolike(s: str) -> str:
 def _sql_between(s: str) -> str:
     """Replace > N with NOT BETWEEN 0 AND N (bypasses > operator filters)."""
     return re.sub(r'>(\s*\d+)', r' NOT BETWEEN 0 AND\1', s)
+
+
+# ---------------------------------------------------------------------------
+# Chain API
+# ---------------------------------------------------------------------------
+
+def apply_evasion_chain(payload: str, chain: list[str]) -> str:
+    """Apply a sequence of named evasion transforms to *payload* in order.
+
+    Each element of *chain* is a key from :data:`EVASION_NAMES` (e.g. ``"case"``,
+    ``"unicode"``).  Unknown names are silently skipped.  Returns the transformed
+    payload; if no transforms are recognised the original payload is returned.
+
+    Example::
+
+        result = apply_evasion_chain('<script>alert(1)</script>', ['case', 'html'])
+    """
+    result = payload
+    for name in chain:
+        evasion = EVASION_NAMES.get(name.lower().strip())
+        if evasion and evasion != EVASION_NONE:
+            try:
+                result = apply_evasion(result, evasion)
+            except Exception:
+                pass
+    return result
 
 
 # ---------------------------------------------------------------------------
