@@ -28,6 +28,10 @@ EVASION_BACKTICK      = "backtick_attr"
 # Splits "expression" with a CSS comment to bypass keyword filters
 # (e.g. expression(alert(1)) → ex/**/pression(alert(1)))
 EVASION_CSS_EXPR      = "css_expression"
+# Encodes inline JS inside event handlers / script blocks as String.fromCharCode(...)
+EVASION_FROMCHARCODE  = "fromcharcode"
+# Encodes inline JS inside event handlers / script blocks via unescape('%xx...')
+EVASION_UNESCAPE      = "unescape_encode"
 
 # SQLi-specific
 EVASION_SQL_COMMENT         = "sql_comment"          # SELECT/**/1  or  SE/**/LECT
@@ -56,6 +60,8 @@ ALL_EVASIONS = [
     EVASION_COMMENT_BREAK,
     EVASION_BACKTICK,
     EVASION_CSS_EXPR,
+    EVASION_FROMCHARCODE,
+    EVASION_UNESCAPE,
     EVASION_SQL_COMMENT,
     EVASION_SQL_WHITESPACE,
     EVASION_SQL_CASE,
@@ -115,6 +121,12 @@ def apply_evasion(payload: str, evasion: str) -> str:
 
     if evasion == EVASION_CSS_EXPR:
         return _css_expression_break(payload)
+
+    if evasion == EVASION_FROMCHARCODE:
+        return _fromcharcode_encode(payload)
+
+    if evasion == EVASION_UNESCAPE:
+        return _unescape_encode(payload)
 
     if evasion == EVASION_SQL_COMMENT:
         return _sql_comment_inject(payload)
@@ -238,6 +250,48 @@ def _backtick_attr(s: str) -> str:
 def _css_expression_break(s: str) -> str:
     """Break 'expression' with a CSS comment to bypass keyword filters."""
     return re.sub(r"\bexpression\b", "ex/**/pression", s, flags=re.IGNORECASE)
+
+
+_EVENT_HANDLER_RE = re.compile(r'(on\w+=)(?:"([^"]*?)"|\'([^\']*?)\'|([^ >]+))', re.IGNORECASE)
+_SCRIPT_CONTENT_RE = re.compile(r'(<script[^>]*>)(.*?)(</script>)', re.IGNORECASE | re.DOTALL)
+
+
+def _fromcharcode_encode(s: str) -> str:
+    """Encode inline JS inside event handlers and script blocks as String.fromCharCode(...)."""
+    def _enc(js: str) -> str:
+        codes = ",".join(str(ord(c)) for c in js)
+        return f"eval(String.fromCharCode({codes}))"
+
+    def _repl_event(m: re.Match) -> str:
+        attr = m.group(1)
+        js   = m.group(2) or m.group(3) or m.group(4) or ""
+        return f'{attr}"{_enc(js)}"'
+
+    def _repl_script(m: re.Match) -> str:
+        return m.group(1) + _enc(m.group(2)) + m.group(3)
+
+    result = _EVENT_HANDLER_RE.sub(_repl_event, s)
+    result = _SCRIPT_CONTENT_RE.sub(_repl_script, result)
+    return result
+
+
+def _unescape_encode(s: str) -> str:
+    """Encode inline JS inside event handlers and script blocks via unescape('%xx...')."""
+    def _enc(js: str) -> str:
+        pct = "".join(f"%{ord(c):02x}" for c in js)
+        return f"eval(unescape('{pct}'))"
+
+    def _repl_event(m: re.Match) -> str:
+        attr = m.group(1)
+        js   = m.group(2) or m.group(3) or m.group(4) or ""
+        return f'{attr}"{_enc(js)}"'
+
+    def _repl_script(m: re.Match) -> str:
+        return m.group(1) + _enc(m.group(2)) + m.group(3)
+
+    result = _EVENT_HANDLER_RE.sub(_repl_event, s)
+    result = _SCRIPT_CONTENT_RE.sub(_repl_script, result)
+    return result
 
 
 def _sql_comment_inject(s: str) -> str:

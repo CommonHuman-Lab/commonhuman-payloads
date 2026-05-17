@@ -12,7 +12,7 @@ from commonhuman_payloads.xss.advanced import (
     PROTOTYPE_POLLUTION, CLASSIC_LEGACY, ENCODING, MODERN_BROWSER,
     STORED_XSS, UNICODE_CASE_BYPASS, UNICODE_LINE_SEP, DOM_CLOBBERING,
     REPLACE_PATTERN, RADIX_OBFUSCATION, UNICODE_URL, CONTENT_TYPE,
-    SANITIZER_BYPASS, CSP_INJECTION,
+    SANITIZER_BYPASS, CSP_INJECTION, DATA_URI,
 )
 
 _ALL_LISTS = [
@@ -43,6 +43,7 @@ _ALL_LISTS = [
     ("CONTENT_TYPE",          CONTENT_TYPE),
     ("SANITIZER_BYPASS",      SANITIZER_BYPASS),
     ("CSP_INJECTION",         CSP_INJECTION),
+    ("DATA_URI",              DATA_URI),
 ]
 
 
@@ -67,3 +68,28 @@ def test_angular_template_alt_mirrors_template_count():
 
 def test_polyglot_non_trivial():
     assert any(len(p) > 20 for p in POLYGLOT)
+
+
+class TestDataUri:
+    def test_non_empty(self):
+        assert len(DATA_URI) >= 5
+
+    def test_all_strings(self):
+        for p in DATA_URI:
+            assert isinstance(p, str)
+
+    def test_contains_data_scheme_or_sentinel(self):
+        for p in DATA_URI:
+            has_data = "data:" in p
+            has_sentinel = p.startswith("__B64_")
+            assert has_data or has_sentinel, f"DATA_URI entry has no data: URI or sentinel: {p!r}"
+
+    def test_has_plain_text_html_entry(self):
+        assert any("data:text/html" in p for p in DATA_URI)
+
+    def test_has_svg_entry(self):
+        assert any("svg" in p.lower() for p in DATA_URI)
+
+    def test_marker_placeholder_present(self):
+        for p in DATA_URI:
+            assert "{marker}" in p, f"Missing {{marker}} placeholder in: {p!r}"

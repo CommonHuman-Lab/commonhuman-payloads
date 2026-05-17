@@ -20,6 +20,8 @@ from commonhuman_payloads.encoders.transforms import (
     EVASION_COMMENT_BREAK,
     EVASION_BACKTICK,
     EVASION_CSS_EXPR,
+    EVASION_FROMCHARCODE,
+    EVASION_UNESCAPE,
     EVASION_SQL_COMMENT,
     EVASION_SQL_WHITESPACE,
     EVASION_SQL_CASE,
@@ -64,8 +66,8 @@ class TestConstants:
         for c in constants:
             assert isinstance(c, str)
 
-    def test_all_evasions_has_24_entries(self):
-        assert len(ALL_EVASIONS) == 24
+    def test_all_evasions_has_26_entries(self):
+        assert len(ALL_EVASIONS) == 26
 
     def test_all_evasions_are_unique(self):
         assert len(ALL_EVASIONS) == len(set(ALL_EVASIONS))
@@ -472,6 +474,63 @@ class TestSqlEqualToLike:
     def test_no_equals_unchanged(self):
         result = apply_evasion("SELECT 1", EVASION_SQL_EQUALTOLIKE)
         assert result == "SELECT 1"
+
+
+class TestFromCharCode:
+    def test_event_handler_double_quoted_encoded(self):
+        result = apply_evasion('<img src=x onerror="alert(1)">', EVASION_FROMCHARCODE)
+        assert "String.fromCharCode" in result
+        assert "eval(" in result
+
+    def test_event_handler_single_quoted_encoded(self):
+        result = apply_evasion("<img src=x onerror='alert(1)'>", EVASION_FROMCHARCODE)
+        assert "String.fromCharCode" in result
+
+    def test_script_block_encoded(self):
+        result = apply_evasion("<script>alert(1)</script>", EVASION_FROMCHARCODE)
+        assert "String.fromCharCode" in result
+        assert "<script>" in result
+        assert "</script>" in result
+
+    def test_no_js_payload_unchanged(self):
+        payload = "<div>hello</div>"
+        result = apply_evasion(payload, EVASION_FROMCHARCODE)
+        assert result == payload
+
+    def test_charcode_values_are_correct(self):
+        result = apply_evasion('<img src=x onerror="x">', EVASION_FROMCHARCODE)
+        # "x" is ord 120
+        assert "120" in result
+
+    def test_result_is_string(self):
+        result = apply_evasion('<svg onload="alert(1)">', EVASION_FROMCHARCODE)
+        assert isinstance(result, str)
+
+
+class TestUnescapeEncode:
+    def test_event_handler_encoded(self):
+        result = apply_evasion('<img src=x onerror="alert(1)">', EVASION_UNESCAPE)
+        assert "unescape(" in result
+        assert "eval(" in result
+
+    def test_script_block_encoded(self):
+        result = apply_evasion("<script>alert(1)</script>", EVASION_UNESCAPE)
+        assert "unescape(" in result
+        assert "<script>" in result
+
+    def test_percent_encoded_chars_present(self):
+        result = apply_evasion('<img src=x onerror="x">', EVASION_UNESCAPE)
+        # "x" percent-encoded is %78
+        assert "%78" in result
+
+    def test_no_js_payload_unchanged(self):
+        payload = "<div>hello</div>"
+        result = apply_evasion(payload, EVASION_UNESCAPE)
+        assert result == payload
+
+    def test_result_is_string(self):
+        result = apply_evasion('<svg onload="alert(1)">', EVASION_UNESCAPE)
+        assert isinstance(result, str)
 
 
 class TestSqlBetween:
