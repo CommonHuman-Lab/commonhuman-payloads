@@ -43,7 +43,7 @@ from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
 | ------ | ------- |
 | `commonhuman_payloads.xss` | HTML, script, attribute, and advanced XSS payloads — 28 contexts |
 | `commonhuman_payloads.sqli` | Error-based, boolean, time-based, UNION, OOB, and advanced SQLi payloads |
-| `commonhuman_payloads.encoders` | WAF evasion transform functions — 24 strategies, one `apply_evasion()` call |
+| `commonhuman_payloads.encoders` | WAF evasion transform functions — 26 strategies, one `apply_evasion()` call |
 | `commonhuman_payloads.waf` | WAF signature data — 10 fingerprints with merged evasion recommendations |
 | `commonhuman_payloads.markers` | Scan marker generation and reflection helpers |
 
@@ -87,6 +87,7 @@ from commonhuman_payloads.xss import (
     SCRIPT_REGEX, SCRIPT_COMMENT, EVENT_HANDLER, URL_ATTR, SCRIPT_SRC,
     ANGULAR_TEMPLATE, VUE_TEMPLATE, POLYGLOT, WAF_BYPASS_GLOBAL,
     PROTOTYPE_POLLUTION, STORED_XSS, DOM_CLOBBERING, SANITIZER_BYPASS,
+    DATA_URI,  # data: URI injection vectors — plain and base64-encoded SVG/HTML
     # ... and more
 )
 ```
@@ -96,6 +97,8 @@ All payloads use `{marker}` as a placeholder. Substitute with `str.replace("{mar
 #### Available contexts
 
 `html_body`, `attr_double`, `attr_single`, `attr_unquoted`, `attr_name`, `tag_name`, `textarea`, `title`, `noscript`, `iframe_srcdoc`, `object_data`, `comment`, `css`, `css_value`, `script_string_d`, `script_string_s`, `script_bare`, `script_template`, `script_regex`, `script_comment`, `event_handler`, `url_attr`, `script_src`, `angular_template`, `angular_template_alt`, `angular_attr`, `vue_template`, `js_hoisting`, `dangling_markup`, `polyglot`
+
+Script sub-contexts (`script_bare`, `script_template`, `script_regex`, `script_comment`, `event_handler`) cover JS-layer breakout and execution techniques including indirect calls, constructor chains, `String.fromCharCode`, tagged templates, `throw` tricks, and Unicode line terminators — not just tag injection.
 
 ---
 
@@ -166,7 +169,7 @@ Risk levels control destructive payload inclusion:
 
 ### `encoders`
 
-Twenty-four WAF evasion strategies in one function. Import the constant, pass it to `apply_evasion()`.
+Twenty-six WAF evasion strategies in one function. Import the constant, pass it to `apply_evasion()`.
 
 ```python
 from commonhuman_payloads.encoders import apply_evasion, EVASION_DOUBLE_ENCODE, EVASION_SQL_COMMENT
@@ -180,7 +183,7 @@ obfuscated = apply_evasion(sql_payload, EVASION_SQL_COMMENT)
 # → "' /**/UNION/**/ /**/SELECT/**/ 1,2-- -"
 ```
 
-#### All 24 strategies
+#### All 26 strategies
 
 | Constant | Strategy | Domain |
 | -------- | -------- | ------ |
@@ -195,6 +198,8 @@ obfuscated = apply_evasion(sql_payload, EVASION_SQL_COMMENT)
 | `EVASION_COMMENT_BREAK` | Insert `<!---->` inside HTML tag names | XSS |
 | `EVASION_BACKTICK` | Replace quote chars with backticks | XSS |
 | `EVASION_CSS_EXPR` | Break `expression` with a CSS comment | XSS |
+| `EVASION_FROMCHARCODE` | Encode JS in event handlers and `<script>` blocks via `eval(String.fromCharCode(...))` | XSS |
+| `EVASION_UNESCAPE` | Encode JS via `eval(unescape('%XX...'))` — bypasses keyword-based WAF rules | XSS |
 | `EVASION_SQL_COMMENT` | Wrap SQL keywords with `/**/` | SQLi |
 | `EVASION_SQL_WHITESPACE` | Replace spaces with tabs | SQLi |
 | `EVASION_SQL_CASE` | Randomise keyword casing | SQLi |
