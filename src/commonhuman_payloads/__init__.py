@@ -16,7 +16,7 @@ Quick start:
     from commonhuman_payloads.creds.hashes import identify_hash, is_hash
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 PAYLOAD_VERSION = "2026.05"
 
 __all__ = ["__version__", "PAYLOAD_VERSION"]
