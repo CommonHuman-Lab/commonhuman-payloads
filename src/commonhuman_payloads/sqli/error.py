@@ -165,11 +165,19 @@ DB_ERROR_PATTERNS: dict[str, List[str]] = {
 }
 
 
-def get_error_payloads(dbms: str, risk: int = 1) -> List[str]:
-    """Return error-based payloads for *dbms* filtered by *risk* level."""
+def get_error_payloads(dbms: str, risk: int = 1, level: int = 1) -> List[str]:
+    """Return error-based payloads for *dbms* filtered by *risk* and *level*.
+
+    level=1 returns the most likely payloads for a fast scan.
+    level=2 extends coverage; level=3 returns all payloads.
+    """
     generic = ERROR_PAYLOADS["generic"]
     specific = ERROR_PAYLOADS.get(dbms, []) if dbms != "auto" else []
     payloads = generic + specific
     if risk < 3:
         payloads = [p for p in payloads if "xp_cmdshell" not in p.lower()]
+    if level == 1:
+        payloads = payloads[:8]
+    elif level == 2:
+        payloads = payloads[:20]
     return payloads

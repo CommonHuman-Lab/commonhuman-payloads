@@ -80,6 +80,12 @@ class TestGetErrorPayloads:
         r3 = get_error_payloads("mysql", risk=3)
         assert len(r3) >= len(r1)
 
+    def test_level2_returns_more_than_level1_fewer_than_level3(self):
+        l1 = get_error_payloads("mysql", level=1)
+        l2 = get_error_payloads("mysql", level=2)
+        l3 = get_error_payloads("mysql", level=3)
+        assert len(l1) < len(l2) <= len(l3)
+
     @pytest.mark.parametrize("dbms", _KNOWN_DBMS)
     def test_all_payloads_are_strings(self, dbms):
         for p in get_error_payloads(dbms, risk=3):

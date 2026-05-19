@@ -43,8 +43,8 @@ class TestGetBooleanPairs:
         assert all(len(p) == 2 for p in result)
 
     def test_risk1_excludes_risk2_payloads(self):
-        r1 = get_boolean_pairs(risk=1)
-        r2 = get_boolean_pairs(risk=2)
+        r1 = get_boolean_pairs(risk=1, level=3)
+        r2 = get_boolean_pairs(risk=2, level=3)
         assert len(r2) > len(r1)
 
     def test_risk2_includes_risk1_payloads(self):
@@ -62,3 +62,9 @@ class TestGetBooleanPairs:
         default = get_boolean_pairs()
         explicit = get_boolean_pairs(risk=1)
         assert default == explicit
+
+    def test_level2_returns_more_than_level1_fewer_than_level3(self):
+        r_l1 = get_boolean_pairs(level=1)
+        r_l2 = get_boolean_pairs(level=2)
+        r_l3 = get_boolean_pairs(level=3)
+        assert len(r_l1) < len(r_l2) <= len(r_l3)

@@ -48,9 +48,17 @@ BOOLEAN_PAIRS_RISK2: List[Tuple[str, str]] = [
 ]
 
 
-def get_boolean_pairs(risk: int = 1) -> List[Tuple[str, str]]:
-    """Return boolean payload pairs for the given risk level."""
+def get_boolean_pairs(risk: int = 1, level: int = 1) -> List[Tuple[str, str]]:
+    """Return boolean payload pairs for the given risk and scan level.
+
+    level=1 returns the most likely pairs for a fast scan.
+    level=2 extends coverage; level=3 returns all pairs.
+    """
     pairs = BOOLEAN_PAIRS.copy()
     if risk >= 2:
         pairs += BOOLEAN_PAIRS_RISK2
+    if level == 1:
+        pairs = pairs[:6]
+    elif level == 2:
+        pairs = pairs[:14]
     return pairs

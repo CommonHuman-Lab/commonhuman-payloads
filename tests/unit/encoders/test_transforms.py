@@ -38,6 +38,8 @@ from commonhuman_payloads.encoders.transforms import (
     ALL_EVASIONS,
     # Main function
     apply_evasion,
+    apply_evasion_chain,
+    EVASION_NAMES,
     # Public helpers
     case_mix,
     html_encode,
@@ -552,3 +554,47 @@ class TestSqlBetween:
         result = apply_evasion("id > 10", EVASION_SQL_BETWEEN)
         assert "NOT BETWEEN" in result
         assert "10" in result
+
+
+class TestApplyEvasionChain:
+    def test_single_step_chain(self):
+        result = apply_evasion_chain("<script>alert(1)</script>", ["html"])
+        assert "&#60;" in result
+
+    def test_multi_step_chain_applied_in_order(self):
+        result = apply_evasion_chain("<script>alert(1)</script>", ["case", "html"])
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_empty_chain_returns_payload_unchanged(self):
+        payload = "<script>test</script>"
+        assert apply_evasion_chain(payload, []) == payload
+
+    def test_unknown_step_name_skipped(self):
+        payload = "<img src=x>"
+        result = apply_evasion_chain(payload, ["nonexistent_step"])
+        assert result == payload
+
+    def test_none_evasion_step_skipped(self):
+        payload = "SELECT 1"
+        result = apply_evasion_chain(payload, ["none"])
+        assert result == payload
+
+    def test_chain_names_case_insensitive(self):
+        r1 = apply_evasion_chain("<b>", ["html"])
+        r2 = apply_evasion_chain("<b>", ["HTML"])
+        assert r1 == r2
+
+    def test_chain_names_stripped_of_whitespace(self):
+        r1 = apply_evasion_chain("<b>", ["html"])
+        r2 = apply_evasion_chain("<b>", ["  html  "])
+        assert r1 == r2
+
+    def test_apply_evasion_exception_suppressed(self):
+        from unittest.mock import patch
+        with patch(
+            "commonhuman_payloads.encoders.transforms.apply_evasion",
+            side_effect=ValueError("boom"),
+        ):
+            result = apply_evasion_chain("<b>", ["html"])
+        assert result == "<b>"
