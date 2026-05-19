@@ -177,7 +177,7 @@ def get_error_payloads(dbms: str, risk: int = 1, level: int = 1) -> List[str]:
     if risk < 3:
         payloads = [p for p in payloads if "xp_cmdshell" not in p.lower()]
     if level == 1:
-        payloads = payloads[:8]
+        payloads = payloads[:12]   # basic quote/comment/paren-escape variants
     elif level == 2:
-        payloads = payloads[:20]
+        payloads = payloads[:22]
     return payloads

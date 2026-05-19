@@ -58,7 +58,7 @@ def get_boolean_pairs(risk: int = 1, level: int = 1) -> List[Tuple[str, str]]:
     if risk >= 2:
         pairs += BOOLEAN_PAIRS_RISK2
     if level == 1:
-        pairs = pairs[:6]
+        pairs = pairs[:9]    # basic AND/numeric/single-paren/double-paren contexts
     elif level == 2:
-        pairs = pairs[:14]
+        pairs = pairs[:16]
     return pairs
