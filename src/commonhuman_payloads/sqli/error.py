@@ -172,12 +172,16 @@ def get_error_payloads(dbms: str, risk: int = 1, level: int = 1) -> List[str]:
     level=2 extends coverage; level=3 returns all payloads.
     """
     generic = ERROR_PAYLOADS["generic"]
-    specific = ERROR_PAYLOADS.get(dbms, []) if dbms != "auto" else []
-    payloads = generic + specific
+    if dbms in ("auto", "generic"):
+        payloads = list(generic)
+    else:
+        specific = ERROR_PAYLOADS.get(dbms, [])
+        if level == 1:
+            payloads = generic[:15] + specific
+        elif level == 2:
+            payloads = generic[:28] + specific
+        else:
+            payloads = list(generic) + specific
     if risk < 3:
         payloads = [p for p in payloads if "xp_cmdshell" not in p.lower()]
-    if level == 1:
-        payloads = payloads[:12]   # basic quote/comment/paren-escape variants
-    elif level == 2:
-        payloads = payloads[:22]
     return payloads

