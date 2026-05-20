@@ -178,9 +178,8 @@ class TestBreachsqlPayloadsCompat:
 
 class TestPublicApiStability:
     def test_version_importable(self):
-        from commonhuman_payloads import __version__, PAYLOAD_VERSION
+        from commonhuman_payloads import __version__
         assert __version__
-        assert PAYLOAD_VERSION
 
     def test_xss_api_importable(self):
         from commonhuman_payloads.xss import get_basic_payloads, get_payloads_for_context

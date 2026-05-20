@@ -22,7 +22,6 @@ The CommonHuman-Lab toolkit is built around the best available payload coverage 
 - **Merged and curated** — XSS and SQLi payload lists are independently maintained; evasion strategies and WAF signatures are the union of both tools, keeping the strongest version of each.
 - **A single place to improve** — a new bypass technique or WAF signature lands in every tool at once.
 - **Zero runtime overhead** — stdlib only. No JSON parsing, no file I/O at import time. Every payload list is a plain Python list you can slice and iterate.
-- **Versioned payload database** — `PAYLOAD_VERSION` tracks the payload set independently of the API version so you know exactly what you're scanning with.
 
 ---
 
@@ -47,15 +46,6 @@ from commonhuman_payloads.waf import SIGNATURES, GENERIC_BLOCK_BODIES
 | `commonhuman_payloads.waf` | WAF signature detection, WAF-specific bypass payload lists, and `get_waf_payloads()` |
 | `commonhuman_payloads.js_vulns` | Vulnerable JS library database — 10+ `LibSpec` entries covering jQuery, AngularJS, Lodash, Bootstrap, DOMPurify, and more |
 | `commonhuman_payloads.markers` | Scan marker generation and reflection helpers |
-
-Two-track versioning:
-
-```python
-from commonhuman_payloads import __version__, PAYLOAD_VERSION
-
-__version__     # "0.1.0" — API version (semver)
-PAYLOAD_VERSION # "2026.05" — payload database version (year.month)
-```
 
 ---
 
@@ -333,7 +323,6 @@ if is_reflected(marker, response.text):
 - **Zero runtime dependencies** — stdlib only. Each tool keeps its own network/browser deps.
 - **Data, not behaviour** — payload lists are plain Python. No classes, no registries. Slice them, extend them, filter them.
 - **Best-of-both** — evasion constants and WAF signatures are merged from stingxss and breachsql, keeping the strongest version of each.
-- **Payload version is independent of API version** — `PAYLOAD_VERSION` (`"2026.05"`) lets you pin and audit the payload database separately from the code.
 - **No magic substitution** — payloads use `{marker}` as a literal placeholder; tools call `str.replace("{marker}", marker)` themselves. No hidden format calls.
 
 ---

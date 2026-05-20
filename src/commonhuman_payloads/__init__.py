@@ -17,6 +17,5 @@ Quick start:
 """
 
 __version__ = "0.1.3"
-PAYLOAD_VERSION = "2026.05"
 
-__all__ = ["__version__", "PAYLOAD_VERSION"]
+__all__ = ["__version__"]
