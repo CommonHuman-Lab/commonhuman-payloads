@@ -12,6 +12,6 @@ Quick start:
     from commonhuman_payloads.js_vulns import KNOWN_VULNERABLE_LIBS, LibSpec
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.5"
 
 __all__ = ["__version__"]
