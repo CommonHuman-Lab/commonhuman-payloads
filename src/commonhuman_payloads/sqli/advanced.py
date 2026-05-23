@@ -285,7 +285,7 @@ EXTRACTION_TARGETS: dict[str, List[tuple[str, str]]] = {
     ],
     "sqlite": [
         ("version", "sqlite_version()"),
-        ("tables",  "(SELECT GROUP_CONCAT(name,',') FROM sqlite_master WHERE type='table')"),
+        ("tables",  "(SELECT GROUP_CONCAT(name,',') FROM sqlite_master WHERE type LIKE 'table')"),
     ],
     "oracle": [
         ("version",       "(SELECT banner FROM v$version WHERE rownum=1)"),
@@ -300,7 +300,7 @@ _EXTRACTION_TARGETS_GENERIC: List[tuple[str, str]] = [
     ("version",        "VERSION()"),
     ("sqlite_version", "sqlite_version()"),
     ("current_user",   "CURRENT_USER"),
-    ("tables",         "(SELECT GROUP_CONCAT(name,',') FROM sqlite_master WHERE type='table')"),
+    ("tables",         "(SELECT GROUP_CONCAT(name,',') FROM sqlite_master WHERE type LIKE 'table')"),
 ]
 
 
