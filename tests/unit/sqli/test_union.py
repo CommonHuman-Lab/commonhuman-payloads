@@ -17,8 +17,8 @@ from commonhuman_payloads.sqli.union import (
 )
 
 _KNOWN_DBMS = ["mysql", "mariadb", "mssql", "postgres", "sqlite", "oracle", "auto"]
-_ORDER_BY_VARIANTS = 16   # variants per column position
-_UNION_VARIANTS    = 16   # probe forms per (position × variant)
+_ORDER_BY_VARIANTS = 18   # variants per column position
+_UNION_VARIANTS    = 18   # probe forms per (position × variant)
 _UNION_COL_VARIANTS = 4   # column variants per position (str, cast, int, char)
 
 

@@ -111,11 +111,11 @@ class TestUnionProbeRegression:
 
     def test_order_by_probes_count(self):
         probes = order_by_probes(max_cols=20)
-        assert len(probes) == 320  # 20 × 16
+        assert len(probes) == 360  # 20 × 18
 
     def test_union_null_probes_count_3_cols(self):
         probes = union_null_probes(col_count=3, marker="M")
-        assert len(probes) == 192  # 3 × 4 × 16
+        assert len(probes) == 216  # 3 × 4 × 18
 
     def test_first_order_by_probe(self):
         probes = order_by_probes(max_cols=5)

